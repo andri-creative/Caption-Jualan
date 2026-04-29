@@ -1,0 +1,46 @@
+@baseUrl = https://openrouter.ai/api/v1
+@apiKey = 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
+
+### Get All Models
+GET {{baseUrl}}/models
+Authorization: Bearer {{apiKey}}
+
+### Get Only Text Models
+GET {{baseUrl}}/models?output_modalities=text
+Authorization: Bearer {{apiKey}}
+
+### Get Only Image Models
+GET {{baseUrl}}/models?output_modalities=image
+Authorization: Bearer {{apiKey}}
+
+###
+
+### Chat Completion (Test Gemini)
+POST {{baseUrl}}/chat/completions
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Halo, ini adalah tes koneksi API OpenRouter."
+    }
+  ]
+}
+
+### Chat Completion (NVIDIA Nemotron Free)
+POST {{baseUrl}}/chat/completions
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "model": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Jelaskan apa itu AI reasoning dalam bahasa Indonesia yang sederhana."
+    }
+  ]
+}
