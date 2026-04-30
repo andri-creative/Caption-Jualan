@@ -97,6 +97,10 @@ const generateCaption = async (userId, productName, inputPrompt, modelUsed, imag
         }
 
         const rawOutput = data.choices[0].message.content;
+        if (!rawOutput) {
+            console.error("❌ AI Response Content is null/empty:", data);
+            throw new Error("AI memberikan respon kosong (content: null).");
+        }
         console.log("📝 Raw Output length:", rawOutput.length);
 
         // Extract Caption and Image Prompt with fallback
@@ -118,9 +122,22 @@ const generateCaption = async (userId, productName, inputPrompt, modelUsed, imag
 
         // 3. GENERATE NEW AI MARKETING IMAGE (Integrated Logic)
         try {
-            console.log("🎨 Executing unified AI Image Generation for:", imageModel);
+            // Dynamically find a suitable image model from the API/DB
+            const allModelsResult = await require('./models').getModelsFromDB();
+            const imageModels = allModelsResult.filter(m => 
+                m.architecture?.modality?.includes('->image') || 
+                m.architecture?.output_modalities?.includes('image') ||
+                m.id.toLowerCase().includes('-image')
+            );
             
-            // OpenRouter uses chat/completions for image models too
+            // Pilih model gambar terbaik (Prioritaskan Flux atau Gemini Image)
+            let dynamicImageModel = imageModels.find(m => m.id.includes('flux'))?.id || 
+                                    imageModels.find(m => m.id.includes('image'))?.id ||
+                                    imageModels[0]?.id || 
+                                    "google/gemini-2.5-flash-image";
+
+            console.log("🎨 Executing dynamic AI Image Generation for:", dynamicImageModel);
+            
             const imgResponse = await fetch(`${urlAi}/chat/completions`, {
                 method: 'POST',
                 headers: {
@@ -128,7 +145,7 @@ const generateCaption = async (userId, productName, inputPrompt, modelUsed, imag
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: "black-forest-labs/flux-schnell", // Gunakan ID yang benar: flux-schnell
+                    model: dynamicImageModel,
                     messages: [
                         {
                             role: "user",
