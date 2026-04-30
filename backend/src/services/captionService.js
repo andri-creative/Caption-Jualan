@@ -1,6 +1,6 @@
 const { Caption } = require('../models');
 const { urlAi, key } = require('../../config/ai-api');
-const { marked } = require('marked');
+
 const imageService = require('./imageService');
 const fs = require('fs');
 
@@ -116,6 +116,7 @@ const generateCaption = async (userId, productName, inputPrompt, modelUsed, imag
             console.log("✅ Successfully extracted Caption and Image Prompt.");
         } else {
             console.warn("⚠️ AI did not follow format markers. Using fallback parsing.");
+            const { marked } = await import('marked');
             aiResultHtml = await marked.parse(rawOutput);
             generatedImagePrompt = `High-quality marketing photo of ${productName}, ${inputPrompt}`;
         }
