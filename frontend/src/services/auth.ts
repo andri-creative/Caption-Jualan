@@ -1,4 +1,4 @@
-const API_URL = "https://caption-backend.vercel.app/api";
+const API_URL = "/api";
 
 export interface User {
     id: string;
