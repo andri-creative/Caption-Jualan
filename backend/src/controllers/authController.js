@@ -77,7 +77,8 @@ const googleCallback = async (req, res) => {
         setTokensInCookies(res, result.session);
 
         // Setelah sukses, arahkan user kembali ke Home atau Dashboard frontend
-        return res.redirect('http://localhost:5173'); // Sesuaikan dengan URL frontend Anda
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        return res.redirect(frontendUrl); 
     } catch (error) {
         return res.status(500).send("Terjadi kesalahan saat memproses otentikasi Google.");
     }

@@ -14,8 +14,21 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- Middleware ---
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://caption-jualan.vercel.app'
+];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'https://caption-jualan.vercel.app/', 
+    origin: function (origin, callback) {
+        // Izinkan request tanpa origin (seperti mobile apps atau curl)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'Kebijakan CORS untuk situs ini tidak mengizinkan akses dari origin yang ditentukan.';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
     credentials: true
 }));
 app.use(express.json());
