@@ -101,27 +101,30 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 );
 
                 if (popup) {
-                    // Dengarkan pesan sukses dari popup
+                    // Gunakan BroadcastChannel agar aman dari Cross-Origin-Opener-Policy
+                    const channel = new BroadcastChannel("popup-channel");
                     const messageListener = (event: MessageEvent) => {
                         if (event.data?.type === 'GOOGLE_LOGIN_SUCCESS') {
-                            window.removeEventListener('message', messageListener);
+                            channel.removeEventListener('message', messageListener);
+                            channel.close();
                             toast({ title: "Berhasil login dengan Google!", description: "Selamat datang kembali." });
                             onOpenChange(false);
                             window.location.reload();
                         }
                     };
-                    window.addEventListener('message', messageListener);
+                    channel.addEventListener('message', messageListener);
                     
-                    // Deteksi jika popup ditutup
+                    // Deteksi jika popup ditutup manual
                     const checkClosed = setInterval(() => {
                         try {
                             if (popup.closed) {
                                 clearInterval(checkClosed);
                                 setIsGoogleLoading(false);
-                                window.removeEventListener('message', messageListener);
+                                channel.removeEventListener('message', messageListener);
+                                channel.close();
                             }
                         } catch (e) {
-                            // Abaikan error Cross-Origin-Opener-Policy
+                            // Abaikan error
                         }
                     }, 500);
                 } else {

@@ -20,4 +20,12 @@ export default defineConfig({
     exclude: ['@tailwindcss/vite'],
     include: ['@supabase/supabase-js'],
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://caption-backend.vercel.app',
+        changeOrigin: true,
+      }
+    }
+  }
 })

@@ -112,17 +112,23 @@ const googleCallback = async (req, res) => {
 
         setTokensInCookies(res, result.session);
 
-        // Setelah sukses, beri tahu opener bahwa login berhasil lalu tutup popup
+        // Setelah sukses, beri tahu opener bahwa login berhasil menggunakan BroadcastChannel
         const frontendUrl = "https://caption-jualan.vercel.app";
         return res.send(`
             <html>
                 <body>
                     <script>
-                        if (window.opener) {
-                            window.opener.postMessage({ type: 'GOOGLE_LOGIN_SUCCESS' }, '*');
-                            window.close();
-                        } else {
-                            window.location.href = '${frontendUrl}';
+                        try {
+                            const channel = new BroadcastChannel("popup-channel");
+                            channel.postMessage({ type: 'GOOGLE_LOGIN_SUCCESS' });
+                            setTimeout(() => { window.close(); }, 100);
+                        } catch(e) {
+                            if (window.opener) {
+                                window.opener.postMessage({ type: 'GOOGLE_LOGIN_SUCCESS' }, '*');
+                                window.close();
+                            } else {
+                                window.location.href = '${frontendUrl}';
+                            }
                         }
                     </script>
                 </body>
