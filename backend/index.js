@@ -49,7 +49,7 @@ if (process.env.NODE_ENV !== 'production') {
     const startServer = async () => {
         try {
             await connectDB();
-            await db.sequelize.sync({ alter: true });
+            await db.sequelize.sync({ alter: false }); 
             console.log('✅ Semua tabel Sequelize berhasil disinkronisasi.');
             
             // Sync models (opsional dijalankan otomatis di lokal)
