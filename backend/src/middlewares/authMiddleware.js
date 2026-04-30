@@ -6,14 +6,20 @@ const requireAuth = async (req, res, next) => {
         const accessToken = req.cookies.access_token;
 
         if (!accessToken) {
-            return res.status(401).json({ success: false, message: "Akses ditolak. Tidak ada token (Silakan login)" });
+            return res.status(401).json({ 
+                success: false, 
+                message: "Sesi Anda telah berakhir. Silakan masuk kembali untuk melanjutkan." 
+            });
         }
 
         // Verifikasi token menggunakan Supabase
         const { data: { user }, error } = await supabase.auth.getUser(accessToken);
 
         if (error || !user) {
-            return res.status(401).json({ success: false, message: "Token tidak valid atau kadaluarsa" });
+            return res.status(401).json({ 
+                success: false, 
+                message: "Otorisasi tidak valid. Silakan coba masuk kembali." 
+            });
         }
 
         // Cari atau Buat user di database lokal agar ID-nya valid untuk tabel Captions

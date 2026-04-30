@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import * as authService from "@/services/auth";
 
 interface LoginDialogProps {
     open: boolean;
@@ -62,20 +62,17 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
         setIsLoading(true);
         try {
             if (mode === "login") {
-                const { error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
+                const result = await authService.login(email, password);
+                if (!result.success) throw new Error(result.message);
+                
                 toast({ title: "Berhasil login!", description: "Selamat datang kembali." });
                 onOpenChange(false);
+                // Reload to refresh user state across app
+                window.location.reload(); 
             } else {
-                const { error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        emailRedirectTo: `${window.location.origin}/`,
-                        data: { full_name: nama },
-                    },
-                });
-                if (error) throw error;
+                const result = await authService.register(email, password, nama);
+                if (!result.success) throw new Error(result.message);
+                
                 toast({ title: "Akun berhasil dibuat!", description: "Silakan login dengan akun Anda." });
                 setMode("login");
             }
@@ -90,11 +87,12 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     const handleGoogleLogin = async () => {
         setIsGoogleLoading(true);
         try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: "google",
-                options: { redirectTo: `${window.location.origin}/` },
-            });
-            if (error) throw error;
+            const result = await authService.getGoogleUrl();
+            if (result.success && result.url) {
+                window.location.href = result.url;
+            } else {
+                throw new Error(result.message || "Gagal mendapatkan URL Google");
+            }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Terjadi kesalahan";
             toast({ title: "Error Google Login", description: message, variant: "destructive" });

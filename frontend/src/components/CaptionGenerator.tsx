@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Sparkles,
     Copy,
@@ -6,6 +6,7 @@ import {
     Loader2,
     Check,
     Zap,
+    Cpu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +14,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useCaptionGenerator } from "@/hooks/useCaptionGenerator";
 import { useToast } from "@/hooks/use-toast";
+import * as aiService from "@/services/ai";
 
 export default function CaptionGenerator() {
     const [namaProduk, setNamaProduk] = useState("");
     const [inputPrompt, setInputPrompt] = useState("");
+    const [models, setModels] = useState<aiService.AIModel[]>([]);
+    const [selectedModel, setSelectedModel] = useState("");
     const [copied, setCopied] = useState(false);
     const { resultText, isLoading, error, generate, reset } = useCaptionGenerator();
     const { toast } = useToast();
+
+    const selectedModelData = models.find(m => m._id === selectedModel);
+
+    useEffect(() => {
+        const fetchModels = async () => {
+            const result = await aiService.getAIModels();
+            if (result.success) {
+                setModels(result.data);
+                if (result.data.length > 0) {
+                    // Default ke model pertama (misal: gemini)
+                    const defaultModel = result.data.find(m => m._id.includes('gemini')) || result.data[0];
+                    setSelectedModel(defaultModel._id);
+                }
+            }
+        };
+        fetchModels();
+    }, []);
 
     const handleGenerate = () => {
         if (!namaProduk.trim()) {
@@ -30,7 +51,11 @@ export default function CaptionGenerator() {
             toast({ title: "Prompt kosong", description: "Masukkan deskripsi atau prompt untuk produk Anda.", variant: "destructive" });
             return;
         }
-        generate(namaProduk, inputPrompt);
+        if (!selectedModel) {
+            toast({ title: "Model belum dipilih", description: "Silakan pilih model AI terlebih dahulu.", variant: "destructive" });
+            return;
+        }
+        generate(namaProduk, inputPrompt, selectedModel);
     };
 
     const handleCopy = async () => {
@@ -90,16 +115,58 @@ export default function CaptionGenerator() {
                                 <p className="text-xs text-muted-foreground">Nama produk yang ingin dibuatkan caption</p>
                             </div>
 
-                            {/* Quick tips */}
-                            <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-                                <p className="text-xs font-semibold text-primary mb-2">Tips Prompt Terbaik:</p>
-                                <ul className="text-xs text-muted-foreground space-y-1">
-                                    <li>• Sebutkan target audiens (ibu rumah tangga, remaja, dll)</li>
-                                    <li>• Masukkan keunggulan utama produk</li>
-                                    <li>• Tentukan platform target (Instagram, TikTok, dll)</li>
-                                    <li>• Tambahkan promo atau harga jika ada</li>
-                                </ul>
+                            {/* Model AI */}
+                            <div className="space-y-2">
+                                <Label htmlFor="modelAi" className="text-sm font-semibold text-foreground">
+                                    Model AI <span className="text-destructive">*</span>
+                                </Label>
+                                <div className="relative">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center pointer-events-none">
+                                        {selectedModelData?.logo_url ? (
+                                            <img 
+                                                src={selectedModelData.logo_url} 
+                                                alt="Logo" 
+                                                className="w-full h-full object-contain"
+                                            />
+                                        ) : (
+                                            <Cpu className="w-4 h-4 text-muted-foreground" />
+                                        )}
+                                    </div>
+                                    <select
+                                        id="modelAi"
+                                        className="flex h-11 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
+                                        value={selectedModel}
+                                        onChange={(e) => setSelectedModel(e.target.value)}
+                                        disabled={isLoading || models.length === 0}
+                                    >
+                                        {models.length === 0 ? (
+                                            <option value="">Loading models...</option>
+                                        ) : (
+                                            models.map((model) => (
+                                                <option key={model._id} value={model._id}>
+                                                    {model.name}
+                                                </option>
+                                            ))
+                                        )}
+                                    </select>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Pilih otak AI yang akan membuatkan caption</p>
                             </div>
+                        </div>
+
+                        <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
+                            <p className="text-xs font-semibold text-primary mb-2">Tips Prompt Terbaik:</p>
+                            <ul className="text-xs text-muted-foreground grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                                <li>• Sebutkan target audiens (ibu rumah tangga, remaja, dll)</li>
+                                <li>• Masukkan keunggulan utama produk</li>
+                                <li>• Tentukan platform target (Instagram, TikTok, dll)</li>
+                                <li>• Tambahkan promo atau harga jika ada</li>
+                            </ul>
                         </div>
 
                         {/* Input Prompt */}

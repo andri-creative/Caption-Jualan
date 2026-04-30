@@ -1,11 +1,29 @@
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Menu, X, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LoginDialog from "@/components/LoginDialog";
+import * as authService from "@/services/auth";
 
 export default function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [loginOpen, setLoginOpen] = useState(false);
+    const [user, setUser] = useState<authService.User | null>(null);
+
+    useEffect(() => {
+        const checkUser = async () => {
+            const result = await authService.getMe();
+            if (result.success && result.user) {
+                setUser(result.user);
+            }
+        };
+        checkUser();
+    }, []);
+
+    const handleLogout = async () => {
+        await authService.logout();
+        setUser(null);
+        window.location.reload();
+    };
 
     return (
         <>
@@ -31,13 +49,32 @@ export default function Navbar() {
                             <a href="#cara-pakai" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                                 Cara Pakai
                             </a>
-                            <Button
-                                size="sm"
-                                className="gradient-hero text-primary-foreground border-0 shadow-md-custom hover:opacity-90 transition-opacity"
-                                onClick={() => setLoginOpen(true)}
-                            >
-                                Login
-                            </Button>
+                            
+                            {user ? (
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium">
+                                        <User className="w-4 h-4" />
+                                        {user.name}
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-muted-foreground hover:text-destructive transition-colors"
+                                        onClick={handleLogout}
+                                    >
+                                        <LogOut className="w-4 h-4 mr-2" />
+                                        Keluar
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    className="gradient-hero text-primary-foreground border-0 shadow-md-custom hover:opacity-90 transition-opacity"
+                                    onClick={() => setLoginOpen(true)}
+                                >
+                                    Login
+                                </Button>
+                            )}
                         </div>
 
                         {/* Mobile menu button */}
@@ -63,13 +100,32 @@ export default function Navbar() {
                             <a href="#cara-pakai" className="block text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMenuOpen(false)}>
                                 Cara Pakai
                             </a>
-                            <Button
-                                size="sm"
-                                className="w-full gradient-hero text-primary-foreground border-0"
-                                onClick={() => { setLoginOpen(true); setMenuOpen(false); }}
-                            >
-                                Login
-                            </Button>
+                            
+                            {user ? (
+                                <div className="pt-2 border-t border-border">
+                                    <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground mb-2">
+                                        <User className="w-4 h-4" />
+                                        {user.name}
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full justify-start text-muted-foreground hover:text-destructive"
+                                        onClick={handleLogout}
+                                    >
+                                        <LogOut className="w-4 h-4 mr-2" />
+                                        Keluar
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    className="w-full gradient-hero text-primary-foreground border-0"
+                                    onClick={() => { setLoginOpen(true); setMenuOpen(false); }}
+                                >
+                                    Login
+                                </Button>
+                            )}
                         </div>
                     </div>
                 )}

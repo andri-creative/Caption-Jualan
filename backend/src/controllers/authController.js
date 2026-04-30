@@ -45,7 +45,7 @@ const login = async (req, res) => {
 const logout = async (req, res) => {
     res.clearCookie('access_token');
     res.clearCookie('refresh_token');
-    return res.status(200).json({ success: true, message: "Berhasil logout" });
+    return res.status(200).json({ success: true, message: "Anda telah berhasil keluar dari sistem." });
 };
 
 const getGoogleLoginUrl = async (req, res) => {
@@ -69,7 +69,7 @@ const googleCallback = async (req, res) => {
         const { access_token, refresh_token } = req.query;
 
         if (!access_token) {
-            return res.status(400).send("Login Google gagal: Token tidak ditemukan.");
+            return res.status(400).send("Proses login Google tidak dapat dilanjutkan. Silakan coba beberapa saat lagi.");
         }
 
         const result = await authService.getSessionFromUrl(access_token, refresh_token);
@@ -79,7 +79,7 @@ const googleCallback = async (req, res) => {
         // Setelah sukses, arahkan user kembali ke Home atau Dashboard frontend
         return res.redirect('http://localhost:5173'); // Sesuaikan dengan URL frontend Anda
     } catch (error) {
-        return res.status(500).send("Error saat memproses login Google: " + error.message);
+        return res.status(500).send("Terjadi kesalahan saat memproses otentikasi Google.");
     }
 };
 

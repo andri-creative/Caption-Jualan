@@ -5,6 +5,9 @@
 GET {{baseUrl}}/models
 Authorization: Bearer {{apiKey}}
 
+###
+GET {{baseUrl}}/models/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning-20260428/endpoints
+
 ### Get Only Text Models
 GET {{baseUrl}}/models?output_modalities=text
 Authorization: Bearer {{apiKey}}
