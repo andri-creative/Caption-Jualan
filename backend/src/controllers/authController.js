@@ -113,7 +113,7 @@ const googleCallback = async (req, res) => {
         setTokensInCookies(res, result.session);
 
         // Setelah sukses, beri tahu opener bahwa login berhasil lalu tutup popup
-        const frontendUrl = process.env.FRONTEND_URL || 'https://caption-jualan.vercel.app';
+        const frontendUrl = "https://caption-jualan.vercel.app";
         return res.send(`
             <html>
                 <body>

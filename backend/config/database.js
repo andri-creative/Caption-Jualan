@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 // 1. PostgreSQL Connection (Sequelize)
-const sequelize = process.env.DATABASE_URL
-  ? new Sequelize(process.env.DATABASE_URL, {
+const sequelize = new Sequelize("postgresql://postgres.swrmxxjzpvhpawrpzjpc:b2xJrJYDiDAKdA15@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres", {
       dialect: 'postgres',
       logging: false,
       dialectOptions: {
@@ -13,23 +12,12 @@ const sequelize = process.env.DATABASE_URL
           rejectUnauthorized: false
         }
       }
-    })
-  : new Sequelize(
-      process.env.DB_NAME || 'caption_jualan',
-      process.env.DB_USER || 'postgres',
-      process.env.DB_PASS || 'postgres',
-      {
-        host: process.env.DB_HOST || 'localhost',
-        port: process.env.DB_PORT || 5432,
-        dialect: 'postgres',
-        logging: false
-      }
-    );
+});
 
 // 2. MongoDB Connection (Mongoose)
 const connectMongo = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/caption_jualan');
+    await mongoose.connect("mongodb+srv://Vercel-Admin-atlas-gray-desert:Rw8y5xpIm0xkEJGZ@atlas-gray-desert.77dppkb.mongodb.net/?retryWrites=true&w=majority");
     console.log('✅ MongoDB Connected (for AI Models)');
   } catch (error) {
     console.error('❌ MongoDB Connection Error:', error.message);
