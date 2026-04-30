@@ -17,7 +17,7 @@ export function useCaptionGenerator() {
             const result = await aiService.generateCaption(namaProduk, inputPrompt, modelId);
             
             if (result.success && result.data) {
-                setResultText(result.data.content);
+                setResultText(result.data.result_text);
             } else {
                 throw new Error(result.message || "Gagal generate caption");
             }
@@ -34,5 +34,5 @@ export function useCaptionGenerator() {
         setError(null);
     }, []);
 
-    return { resultText, isLoading, error, generate, reset };
+    return { resultText, setResultText, isLoading, error, generate, reset };
 }

@@ -53,8 +53,12 @@ const getGoogleOAuthUrl = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            // URL setelah login Google sukses (harus didaftarkan di Supabase Dashboard)
-            redirectTo: 'https://caption-backend.vercel.app/api/auth/callback' 
+            redirectTo: 'http://localhost:3000/api/auth/callback',
+            flowType: 'pkce', 
+            queryParams: {
+                access_type: 'offline',
+                prompt: 'consent',
+            },
         }
     });
 
@@ -62,14 +66,13 @@ const getGoogleOAuthUrl = async () => {
     return data.url;
 };
 
-// 4. Proses Callback setelah Login Google (Menangkap session)
-const getSessionFromUrl = async (accessToken, refreshToken) => {
-    const { data, error } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-    });
+/**
+ * Tukarkan CODE dari Google/Supabase menjadi Session
+ */
+const getSessionFromUrl = async (code) => {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (error) throw new Error(error.message);
+    if (error) throw error;
 
     // Sinkronisasi data user Google ke database lokal kita
     let user = await User.findOne({ where: { email: data.user.email } });
@@ -89,5 +92,6 @@ module.exports = {
     registerWithEmail,
     loginWithEmail,
     getGoogleOAuthUrl,
-    getSessionFromUrl
+    getSessionFromUrl,
+    supabase
 };

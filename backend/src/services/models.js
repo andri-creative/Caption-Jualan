@@ -79,36 +79,37 @@ const LOGO_MAP = {
     "llama": "https://openrouter.ai/images/icons/Meta.png"
 };
 
-// Fungsi untuk mengambil data model dari MongoDB (dengan filter model tertentu)
+// Fungsi untuk mengambil data model dari MongoDB (dengan filter ID asli OpenRouter)
 const getModelsFromDB = async () => {
     try {
-        const allowedNames = [
-            "NVIDIA: Nemotron 3 Nano 30B A3B (free)",
-            "Qwen: Qwen3.5 Plus 2026-02-15",
-            "OpenAI: GPT-5.5 Pro",
-            "Google: Gemini 2.0 Flash",
-            "Anthropic: Claude Opus 4.7",
-            "Google: Gemma 4 26B A4B (free)",
-            "xAI: Grok 4.20 Multi-Agent",
-            "Google: Nano Banana (Gemini 2.5 Flash Image)",
-            "OpenAI: GPT-5.2 Chat",
-            "OpenAI: GPT-5.2 Pro",
-            "DeepSeek: DeepSeek V3.2 Speciale",
-            "Meta: Llama 3.3 70B Instruct (free)"
-        ];
+        // Daftar ID asli (slug) yang ingin kita tampilkan
+        const modelMappings = {
+            "google/gemini-2.0-flash-001": "Google: Gemini 2.0 Flash",
+            "deepseek/deepseek-chat": "DeepSeek: DeepSeek V3",
+            "openai/gpt-4o": "OpenAI: GPT-4o Pro",
+            "anthropic/claude-3-5-sonnet": "Anthropic: Claude 3.5 Sonnet",
+            "meta-llama/llama-3.3-70b-instruct:free": "Meta: Llama 3.3 70B (Free)",
+            "nvidia/llama-3.1-nemotron-70b-instruct:free": "NVIDIA: Nemotron 70B (Free)",
+            "qwen/qwen-2.5-72b-instruct": "Qwen: Qwen 2.5 72B",
+            "xai/grok-2-1212": "xAI: Grok 2"
+        };
+
+        const allowedIds = Object.keys(modelMappings);
 
         const models = await AiModel.find({
-            name: { $in: allowedNames }
-        }).sort({ name: 1 });
+            _id: { $in: allowedIds }
+        });
 
-        // Tambahkan logo_url secara dinamis berdasarkan nama provider
+        // Tambahkan logo_url dan gunakan Nama Cantik pilihan kita
         const modelsWithLogos = models.map(model => {
-            const modelName = model.name.toLowerCase();
-            let logo = 'https://cdn-icons-png.flaticon.com/512/2103/2103633.png'; // Default icon
+            const slug = model._id;
+            const displayName = modelMappings[slug] || model.name;
+            const modelKey = slug.toLowerCase();
+            
+            let logo = 'https://cdn-icons-png.flaticon.com/512/2103/2103633.png'; // Default
 
-            // Cari provider yang cocok dari LOGO_MAP
             for (const key in LOGO_MAP) {
-                if (modelName.includes(key)) {
+                if (modelKey.includes(key)) {
                     logo = LOGO_MAP[key];
                     break;
                 }
@@ -116,6 +117,8 @@ const getModelsFromDB = async () => {
 
             return {
                 ...model.toObject(),
+                id: slug, // Frontend butuh field 'id'
+                name: displayName, // Gunakan nama cantik kita
                 logo_url: logo
             };
         });

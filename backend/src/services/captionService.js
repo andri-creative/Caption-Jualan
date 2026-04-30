@@ -3,6 +3,12 @@ const { urlAi, key } = require('../../config/ai-api');
 
 const generateCaption = async (userId, productName, inputPrompt, modelUsed) => {
     try {
+        if (typeof fetch === 'undefined') {
+            throw new Error("Node.js version too old. Please use Node.js v18+ or install node-fetch.");
+        }
+
+        console.log(`🤖 Menghubungi OpenRouter dengan model: ${modelUsed}...`);
+
         // 1. Kirim permintaan ke OpenRouter AI
         const response = await fetch(`${urlAi}/chat/completions`, {
             method: 'POST',
@@ -32,21 +38,32 @@ const generateCaption = async (userId, productName, inputPrompt, modelUsed) => {
         }
 
         const data = await response.json();
+        if (!data.choices || !data.choices[0]) {
+            console.error("Respon OpenRouter tidak sesuai format:", data);
+            throw new Error("Respon AI tidak valid");
+        }
         const aiResultText = data.choices[0].message.content;
 
-        // 2. Simpan hasil ke database PostgreSQL
-        const newCaption = await Caption.create({
-            user_id: userId,
-            product_name: productName,
-            input_prompt: inputPrompt,
-            model_used: modelUsed,
-            result_text: aiResultText,
-            image_url: null // Opsional, dikosongkan dulu sesuai permintaan
-        });
+        console.log("✅ Berhasil mendapatkan caption dari AI. Menyimpan ke database...");
 
-        return newCaption;
+        // 2. Simpan hasil ke database PostgreSQL
+        try {
+            const newCaption = await Caption.create({
+                user_id: userId,
+                product_name: productName,
+                input_prompt: inputPrompt,
+                model_used: modelUsed,
+                result_text: aiResultText,
+                image_url: null
+            });
+            console.log("✅ Berhasil menyimpan caption ke DB.");
+            return newCaption;
+        } catch (dbError) {
+            console.error("❌ Gagal menyimpan ke Database PostgreSQL:", dbError);
+            throw new Error("Gagal menyimpan data ke database: " + dbError.message);
+        }
     } catch (error) {
-        console.error("Error di captionService:", error);
+        console.error("❌ Error di captionService:", error.message);
         throw error;
     }
 };

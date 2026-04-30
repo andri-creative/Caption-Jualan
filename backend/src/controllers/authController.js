@@ -64,15 +64,51 @@ const getMe = async (req, res) => {
 
 const googleCallback = async (req, res) => {
     try {
-        // Supabase biasanya mengirim token via hash fragment (#), 
-        // tapi jika kita pakai server-side, kita tangkap dari query params jika ada
-        const { access_token, refresh_token } = req.query;
+        const { code, access_token, refresh_token } = req.query;
 
-        if (!access_token) {
-            return res.status(400).send("Proses login Google tidak dapat dilanjutkan. Silakan coba beberapa saat lagi.");
+        // Jembatan (Bridge) untuk menangkap fragment (#) dan mengubahnya jadi query (?)
+        // Jika tidak ada code atau access_token di query, kirim script untuk cek di fragment (#)
+        if (!code && !access_token) {
+            return res.send(`
+                <html>
+                    <body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+                        <div style="text-align: center;">
+                            <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 2s linear infinite; margin: 0 auto 20px;"></div>
+                            <p>Menyelesaikan autentikasi, mohon tunggu...</p>
+                        </div>
+                        <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+                        <script>
+                            const hash = window.location.hash;
+                            if (hash) {
+                                // Ambil params dari fragment (#) dan pindahkan ke query (?)
+                                const searchParams = new URLSearchParams(hash.substring(1));
+                                if (searchParams.has('access_token')) {
+                                    window.location.href = window.location.pathname + '?' + hash.substring(1);
+                                } else {
+                                    document.body.innerHTML = 'Gagal autentikasi: Fragment tidak valid.';
+                                }
+                            } else {
+                                document.body.innerHTML = 'Proses login tidak dapat dilanjutkan: Data tidak ditemukan.';
+                            }
+                        </script>
+                    </body>
+                </html>
+            `);
         }
 
-        const result = await authService.getSessionFromUrl(access_token, refresh_token);
+        let result;
+        if (code) {
+            // Jika menggunakan alur PKCE (Code)
+            result = await authService.getSessionFromUrl(code);
+        } else {
+            // Jika menggunakan alur Implicit (Access Token)
+            const { data, error } = await authService.supabase.auth.setSession({
+                access_token,
+                refresh_token
+            });
+            if (error) throw error;
+            result = { session: data.session, user: data.user };
+        }
         
         setTokensInCookies(res, result.session);
 

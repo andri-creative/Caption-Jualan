@@ -10,11 +10,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useCaptionGenerator } from "@/hooks/useCaptionGenerator";
 import { useToast } from "@/hooks/use-toast";
 import * as aiService from "@/services/ai";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 export default function CaptionGenerator() {
     const [namaProduk, setNamaProduk] = useState("");
@@ -22,10 +23,10 @@ export default function CaptionGenerator() {
     const [models, setModels] = useState<aiService.AIModel[]>([]);
     const [selectedModel, setSelectedModel] = useState("");
     const [copied, setCopied] = useState(false);
-    const { resultText, isLoading, error, generate, reset } = useCaptionGenerator();
+    const { resultText, setResultText, isLoading, error, generate, reset } = useCaptionGenerator();
     const { toast } = useToast();
 
-    const selectedModelData = models.find(m => m._id === selectedModel);
+    const selectedModelData = models.find(m => m.id === selectedModel);
 
     useEffect(() => {
         const fetchModels = async () => {
@@ -143,7 +144,7 @@ export default function CaptionGenerator() {
                                             <option value="">Loading models...</option>
                                         ) : (
                                             models.map((model) => (
-                                                <option key={model._id} value={model._id}>
+                                                <option key={model._id} value={model.id}>
                                                     {model.name}
                                                 </option>
                                             ))
@@ -174,14 +175,22 @@ export default function CaptionGenerator() {
                             <Label htmlFor="inputPrompt" className="text-sm font-semibold text-foreground">
                                 Deskripsi / Prompt <span className="text-destructive">*</span>
                             </Label>
-                            <Textarea
-                                id="inputPrompt"
-                                placeholder="Contoh: Serum untuk mencerahkan kulit kusam, cocok untuk wanita 25-40 tahun, harga Rp 89.000, target Instagram, ada promo beli 2 gratis 1..."
-                                value={inputPrompt}
-                                onChange={(e) => setInputPrompt(e.target.value)}
-                                disabled={isLoading}
-                                className="min-h-[120px] resize-none"
-                            />
+                            <div className="bg-white rounded-lg overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                <ReactQuill
+                                    theme="snow"
+                                    value={inputPrompt}
+                                    onChange={setInputPrompt}
+                                    placeholder="Contoh: Serum untuk mencerahkan kulit kusam..."
+                                    className="quill-editor"
+                                    modules={{
+                                        toolbar: [
+                                            ['bold', 'italic', 'underline'],
+                                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                            ['clean']
+                                        ],
+                                    }}
+                                />
+                            </div>
                             <p className="text-xs text-muted-foreground">
                                 Jelaskan target pembeli, keunggulan produk, platform, dan info lainnya
                             </p>
@@ -241,19 +250,27 @@ export default function CaptionGenerator() {
                                     )}
                                 </div>
 
-                                <div className="bg-muted/40 rounded-xl p-5 min-h-[120px] border border-border/50">
+                                <div className="bg-white rounded-xl overflow-hidden border border-border/50">
                                     {isLoading && !resultText ? (
-                                        <div className="flex items-center gap-3 text-muted-foreground">
+                                        <div className="flex items-center gap-3 p-5 text-muted-foreground">
                                             <Loader2 className="w-5 h-5 animate-spin text-primary" />
                                             <span className="text-sm">AI sedang menulis caption jualan terbaik untuk Anda...</span>
                                         </div>
                                     ) : (
-                                        <pre className="whitespace-pre-wrap text-sm text-foreground font-sans leading-relaxed">
-                                            {resultText}
-                                            {isLoading && (
-                                                <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-0.5 align-middle" />
-                                            )}
-                                        </pre>
+                                        <ReactQuill
+                                            theme="snow"
+                                            value={resultText}
+                                            onChange={setResultText}
+                                            readOnly={isLoading}
+                                            className="quill-result"
+                                            modules={{
+                                                toolbar: [
+                                                    ['bold', 'italic', 'underline'],
+                                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                                    ['clean']
+                                                ],
+                                            }}
+                                        />
                                     )}
                                 </div>
                             </div>
@@ -270,6 +287,32 @@ export default function CaptionGenerator() {
                     )}
                 </div>
             </div>
+
+            {/* Custom Styles for Quill */}
+            <style dangerouslySetInnerHTML={{ __html: `
+                .quill-editor .ql-container {
+                    min-height: 120px;
+                    font-family: inherit;
+                    font-size: 14px;
+                }
+                .quill-result .ql-container {
+                    min-height: 150px;
+                    font-family: inherit;
+                    font-size: 14px;
+                }
+                .ql-toolbar.ql-snow {
+                    border: none;
+                    border-bottom: 1px solid #e2e8f0;
+                    background: #f8fafc;
+                }
+                .ql-container.ql-snow {
+                    border: none;
+                }
+                .ql-editor.ql-blank::before {
+                    color: #94a3b8;
+                    font-style: normal;
+                }
+            `}} />
         </section>
     );
 }

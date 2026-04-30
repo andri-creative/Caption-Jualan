@@ -1,7 +1,8 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://caption-backend.vercel.app/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export interface AIModel {
     _id: string;
+    id: string;
     name: string;
     description: string;
     logo_url?: string;
@@ -10,7 +11,9 @@ export interface AIModel {
 export interface GenerationResponse {
     success: boolean;
     data?: {
-        content: string;
+        id: number;
+        result_text: string;
+        product_name: string;
     };
     message?: string;
 }
