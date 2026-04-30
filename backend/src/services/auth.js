@@ -54,7 +54,7 @@ const getGoogleOAuthUrl = async () => {
         provider: 'google',
         options: {
             // URL setelah login Google sukses (harus didaftarkan di Supabase Dashboard)
-            redirectTo: 'http://localhost:3000/api/auth/callback' 
+            redirectTo: 'https://caption-backend.vercel.app/api/auth/callback' 
         }
     });
 
