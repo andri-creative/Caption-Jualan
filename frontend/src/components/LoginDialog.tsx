@@ -114,10 +114,14 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                     
                     // Deteksi jika popup ditutup
                     const checkClosed = setInterval(() => {
-                        if (popup.closed) {
-                            clearInterval(checkClosed);
-                            setIsGoogleLoading(false);
-                            window.removeEventListener('message', messageListener);
+                        try {
+                            if (popup.closed) {
+                                clearInterval(checkClosed);
+                                setIsGoogleLoading(false);
+                                window.removeEventListener('message', messageListener);
+                            }
+                        } catch (e) {
+                            // Abaikan error Cross-Origin-Opener-Policy
                         }
                     }, 500);
                 } else {

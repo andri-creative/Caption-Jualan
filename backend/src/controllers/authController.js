@@ -3,8 +3,8 @@ const authService = require('../services/auth');
 // Durasi cookie (misal: 7 hari)
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: true, // Must be true for sameSite: 'none'
+    sameSite: 'none',
     maxAge: 7 * 24 * 60 * 60 * 1000
 };
 

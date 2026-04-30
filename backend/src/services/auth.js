@@ -53,7 +53,7 @@ const getGoogleOAuthUrl = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: 'http://localhost:3000/api/auth/callback',
+            redirectTo: 'https://caption-backend.vercel.app/api/auth/callback',
             flowType: 'pkce', 
             queryParams: {
                 access_type: 'offline',

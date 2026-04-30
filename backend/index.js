@@ -59,7 +59,7 @@ app.get('/', (req, res) => {
                 <script>
                     if (window.location.hash && window.location.hash.includes('access_token')) {
                         // Forward Supabase fallback redirect to our actual callback endpoint
-                        window.location.href = '/api/auth/google/callback' + window.location.hash;
+                        window.location.href = '/api/auth/callback' + window.location.hash;
                     } else {
                         document.body.innerHTML = '<pre>{"message": "Caption Jualan API is running 🚀"}</pre>';
                     }
