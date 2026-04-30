@@ -19,7 +19,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
-// app.use(express.static('public')); // Dinonaktifkan karena tidak digunakan
+// app.use(express.static('public'));
 
 // Middleware untuk memastikan DB terkoneksi (Serverless Friendly)
 let isDbConnected = false;
