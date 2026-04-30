@@ -5,7 +5,7 @@ const COOKIE_OPTIONS = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000 
+    maxAge: 7 * 24 * 60 * 60 * 1000
 };
 
 // Fungsi bantuan untuk menset cookie
@@ -20,7 +20,7 @@ const register = async (req, res) => {
     try {
         const { email, password, name } = req.body;
         const result = await authService.registerWithEmail(email, password, name);
-        
+
         setTokensInCookies(res, result.session);
 
         return res.status(201).json({ success: true, user: result.user });
@@ -33,7 +33,7 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         const result = await authService.loginWithEmail(email, password);
-        
+
         setTokensInCookies(res, result.session);
 
         return res.status(200).json({ success: true, user: result.user });
@@ -109,11 +109,11 @@ const googleCallback = async (req, res) => {
             if (error) throw error;
             result = { session: data.session, user: data.user };
         }
-        
+
         setTokensInCookies(res, result.session);
 
         // Setelah sukses, beri tahu opener bahwa login berhasil lalu tutup popup
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://caption-jualan.vercel.app';
         return res.send(`
             <html>
                 <body>
