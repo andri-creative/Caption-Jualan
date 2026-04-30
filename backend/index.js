@@ -19,7 +19,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
-app.use(express.static('public'));
+// app.use(express.static('public')); // Dinonaktifkan karena tidak digunakan
 
 // Middleware untuk memastikan DB terkoneksi (Serverless Friendly)
 let isDbConnected = false;
@@ -37,7 +37,7 @@ app.use(async (req, res, next) => {
 
 // --- Register Routes ---
 app.get('/', (req, res) => {
-  res.json({ message: 'Caption Jualan API is running 🚀' });
+  res.json({ message: 'Caption Jualan API is running 🚀', });
 });
 
 app.use('/api/ai', aiRoutes);
