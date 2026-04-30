@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://caption-backend.vercel.app/api';
 
 export interface User {
     id: string;
@@ -12,7 +12,7 @@ export interface AuthResponse {
     success: boolean;
     user?: User;
     message?: string;
-    url?: string; 
+    url?: string;
 }
 
 /**
