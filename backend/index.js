@@ -16,6 +16,7 @@ const PORT = process.env.PORT || 3000;
 
 // --- Middleware ---
 const allowedOrigins = [
+    'https://caption-jualan-4bb3zsmke-andri-devolopers-projects.vercel.app',
     'https://caption-jualan.vercel.app',
     'http://localhost:5173',
 ];
