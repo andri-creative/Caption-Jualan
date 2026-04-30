@@ -2,10 +2,11 @@ const captionService = require('../services/captionService');
 
 const createCaption = async (req, res) => {
     try {
-        const { product_name, input_prompt, model_used } = req.body;
-        
+        const { product_name, input_prompt, model_used, image_model } = req.body;
+        const imageFile = req.file;
+
         // userId harus dari id lokal (PostgreSQL)
-        const userId = req.user.id; 
+        const userId = req.user.id;
 
         if (!userId) {
             return res.status(401).json({ success: false, message: "User ID tidak ditemukan. Silakan login ulang." });
@@ -21,7 +22,9 @@ const createCaption = async (req, res) => {
             userId,
             product_name,
             input_prompt || "Buatkan caption yang bagus",
-            model_used
+            model_used,
+            image_model || "openai/dall-e-3",
+            imageFile
         );
 
         return res.status(201).json({

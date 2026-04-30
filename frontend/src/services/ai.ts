@@ -1,11 +1,15 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export interface AIModel {
-    _id: string;
     id: string;
     name: string;
     description: string;
     logo_url?: string;
+    architecture?: {
+        modality: string;
+        input_modalities?: string[];
+        output_modalities?: string[];
+    };
 }
 
 export interface GenerationResponse {
@@ -14,6 +18,8 @@ export interface GenerationResponse {
         id: number;
         result_text: string;
         product_name: string;
+        image_url?: string;
+        generated_image_url?: string;
     };
     message?: string;
 }
@@ -37,16 +43,24 @@ export const getAIModels = async (): Promise<{ success: boolean; data: AIModel[]
 /**
  * Generate Caption melalui backend
  */
-export const generateCaption = async (productName: string, prompt: string, modelId: string): Promise<GenerationResponse> => {
+export const generateCaption = async (productName: string, prompt: string, modelId: string, imageModel?: string, imageFile?: File): Promise<GenerationResponse> => {
     try {
+        const formData = new FormData();
+        formData.append('product_name', productName);
+        formData.append('input_prompt', prompt);
+        formData.append('model_used', modelId);
+
+        if (imageModel) {
+            formData.append('image_model', imageModel);
+        }
+
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
+
         const response = await fetch(`${API_URL}/captions/generate`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                product_name: productName,
-                input_prompt: prompt,
-                model_used: modelId
-            }),
+            body: formData,
             credentials: 'include',
         });
         return await response.json();

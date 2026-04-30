@@ -1,316 +1,485 @@
-import { useEffect, useState } from "react";
-import {
-    Sparkles,
-    Copy,
-    RotateCcw,
-    Loader2,
-    Check,
-    Zap,
-    Cpu,
-} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+    Loader2,
+    Sparkles,
+    Copy,
+    Check,
+    RotateCcw,
+    Image as ImageIcon,
+    X,
+    MessageSquare,
+    Zap
+} from "lucide-react";
 import { useCaptionGenerator } from "@/hooks/useCaptionGenerator";
 import { useToast } from "@/hooks/use-toast";
 import * as aiService from "@/services/ai";
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import Editor from 'react-simple-wysiwyg';
 
 export default function CaptionGenerator() {
-    const [namaProduk, setNamaProduk] = useState("");
+    const [productName, setProductName] = useState("");
     const [inputPrompt, setInputPrompt] = useState("");
     const [models, setModels] = useState<aiService.AIModel[]>([]);
     const [selectedModel, setSelectedModel] = useState("");
+    const [selectedImageModel] = useState("openai/dall-e-3");
     const [copied, setCopied] = useState(false);
-    const { resultText, setResultText, isLoading, error, generate, reset } = useCaptionGenerator();
-    const { toast } = useToast();
 
-    const selectedModelData = models.find(m => m.id === selectedModel);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const { resultText, generatedImageUrl, setResultText, isLoading, isGeneratingImage, error, generate, reset } = useCaptionGenerator();
+    const { toast } = useToast();
 
     useEffect(() => {
         const fetchModels = async () => {
             const result = await aiService.getAIModels();
             if (result.success) {
-                setModels(result.data);
-                if (result.data.length > 0) {
-                    // Default ke model pertama (misal: gemini)
-                    const defaultModel = result.data.find(m => m._id.includes('gemini')) || result.data[0];
-                    setSelectedModel(defaultModel._id);
+                // Filter models based on modalities from API
+                const allModels = result.data;
+                
+                // Identify text/vision models (Input Core)
+                const txtModels = allModels.filter(m => 
+                    m.architecture?.input_modalities?.includes('text') || 
+                    !m.architecture?.output_modalities?.includes('image')
+                );
+
+                // Identify vision models (input includes 'image')
+                const visionModels = txtModels.filter(m => 
+                    m.architecture?.input_modalities?.includes('image')
+                );
+
+                setModels(txtModels);
+
+                if (txtModels.length > 0) {
+                    // Default to first vision model or first available model
+                    const defaultTxt = visionModels[0] || txtModels[0];
+                    setSelectedModel(defaultTxt.id);
                 }
             }
         };
         fetchModels();
     }, []);
 
-    const handleGenerate = () => {
-        if (!namaProduk.trim()) {
-            toast({ title: "Nama produk kosong", description: "Masukkan nama produk terlebih dahulu.", variant: "destructive" });
-            return;
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast({
+                    title: "File too large",
+                    description: "Maximum image size is 5MB.",
+                    variant: "destructive"
+                });
+                return;
+            }
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
         }
-        if (!inputPrompt.trim()) {
-            toast({ title: "Prompt kosong", description: "Masukkan deskripsi atau prompt untuk produk Anda.", variant: "destructive" });
-            return;
-        }
-        if (!selectedModel) {
-            toast({ title: "Model belum dipilih", description: "Silakan pilih model AI terlebih dahulu.", variant: "destructive" });
-            return;
-        }
-        generate(namaProduk, inputPrompt, selectedModel);
     };
 
-    const handleCopy = async () => {
-        if (!resultText) return;
-        try {
-            await navigator.clipboard.writeText(resultText);
-            setCopied(true);
-            toast({ title: "Disalin!", description: "Caption berhasil disalin ke clipboard." });
-            setTimeout(() => setCopied(false), 2000);
-        } catch {
-            toast({ title: "Gagal menyalin", description: "Tidak dapat mengakses clipboard.", variant: "destructive" });
+    const removeImage = () => {
+        setImageFile(null);
+        setImagePreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+
+    const handleGenerate = async () => {
+        if (!productName || !selectedModel) {
+            toast({
+                title: "Missing Information",
+                description: "Please enter product name and select an AI model.",
+                variant: "destructive"
+            });
+            return;
         }
+
+        // Cek apakah model mendukung vision jika ada gambar
+        const currentModel = models.find(m => m.id === selectedModel);
+        const modelId = currentModel?.id.toLowerCase() || "";
+        const modelName = currentModel?.name.toLowerCase() || "";
+        
+        const supportsVision = currentModel?.architecture?.input_modalities?.includes('image') || 
+                               modelName.includes('vision') ||
+                               modelId.includes('vision') ||
+                               modelId.includes('gemini') ||
+                               modelId.includes('gpt-4o') ||
+                               modelId.includes('claude-3-5') ||
+                               modelId.includes('claude-3-opus') ||
+                               modelId.includes('pixtral');
+
+        if (imageFile && !supportsVision) {
+            toast({
+                title: "Model Mismatch",
+                description: "Model yang Anda pilih tidak mendukung analisis gambar. Silakan pilih model dengan label [VISION].",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        await generate(productName, inputPrompt, selectedModel, selectedImageModel, imageFile || undefined);
+    };
+
+    const handleCopy = () => {
+        if (!resultText) return;
+        const plainText = resultText.replace(/<[^>]*>/g, '');
+        navigator.clipboard.writeText(plainText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        toast({
+            title: "Copied!",
+            description: "Caption copied to clipboard.",
+        });
     };
 
     const handleReset = () => {
-        reset();
-        setNamaProduk("");
+        setProductName("");
         setInputPrompt("");
+        setImageFile(null);
+        setImagePreview(null);
+        reset();
     };
 
     return (
-        <section id="generator" className="py-20 px-4">
-            <div className="max-w-4xl mx-auto">
-                {/* Section header */}
-                <div className="text-center mb-12">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-                        <Zap className="w-4 h-4" />
-                        Generator Caption AI
+        <section className="relative min-h-screen text-white py-12 px-4 md:py-20 font-sans overflow-hidden">
+            {/* Anime Background - Changed from fixed to absolute to prevent covering hero */}
+            <div className="absolute inset-0 z-0 overflow-hidden">
+                <img
+                    src="/anime-bg.png"
+                    alt="Background"
+                    className="w-full h-full object-cover opacity-30 scale-105"
+                />
+                <div className="absolute inset-0 bg-linear-to-b from-[#0a0a0a]/95 via-[#0a0a0a]/85 to-[#0a0a0a]/98"></div>
+            </div>
+
+            <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+
+                {/* Left Column: AI Character & Narrative */}
+                <div className="lg:col-span-4 flex flex-col items-center lg:items-end space-y-8 lg:sticky lg:top-24">
+                    <div className="relative group">
+                        {/* Anime Aura Glow */}
+                        <div className="absolute -inset-4 bg-linear-to-r from-[#D4AF37] to-[#FFD700] rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition duration-1000 animate-pulse"></div>
+
+                        <div className="relative w-56 h-56 md:w-80 md:h-80 rounded-4xl overflow-hidden border-4 border-[#D4AF37] shadow-[0_0_50px_rgba(212,175,55,0.4)] -rotate-2 hover:rotate-0 transition-transform duration-500">
+                            <img
+                                src="/ai-character.png"
+                                alt="AI Assistant"
+                                className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-size-[100%_4px] bg-[linear-gradient(transparent_0%,rgba(212,175,55,0.15)_50%,transparent_100%)] pointer-events-none"></div>
+                        </div>
+
+                        {/* Manga Style Speech Bubble */}
+                        <div className="absolute -top-16 lg:-right-12 bg-white text-black p-6 rounded-4xl rounded-bl-none shadow-[10px_10px_0px_rgba(0,0,0,1)] min-w-[250px] animate-bounce-subtle border-4 border-black">
+                            <div className="flex items-start gap-3">
+                                <Sparkles className="w-6 h-6 text-[#D4AF37] mt-1 shrink-0" />
+                                <p className="text-sm md:text-base font-black italic uppercase tracking-tight leading-tight">
+                                    {isLoading
+                                        ? "System core active... Synchronizing data!"
+                                        : "Ready for orders! Let's build your brand empire!"}
+                                </p>
+                            </div>
+                            <div className="absolute -bottom-4 left-0 w-8 h-8 bg-white border-l-4 border-b-4 border-black transform rotate-45"></div>
+                        </div>
                     </div>
-                    <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                        Buat Caption Jualan
-                        <span className="text-primary"> Viral</span> dalam Detik
-                    </h2>
-                    <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                        Masukkan nama produk dan informasi singkat, AI kami akan buat 3 variasi caption jualan yang menarik.
-                    </p>
+
+                    <div className="text-center lg:text-right space-y-4">
+                        <div className="inline-block bg-[#D4AF37] text-black px-4 py-1 font-black -skew-x-12 mb-2 uppercase italic text-sm border-2 border-black">
+                            S-Rank Strategic Agent
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-none italic uppercase">
+                            AI <span className="text-[#D4AF37] drop-shadow-[0_0_15px_rgba(212,175,55,0.8)]">VIRTUAL</span><br />MARKETER
+                        </h2>
+                        <p className="text-base text-white font-bold max-w-sm ml-auto bg-black/80 p-5 rounded-2xl border-r-8 border-[#D4AF37] backdrop-blur-md shadow-2xl">
+                            Deploy high-frequency intelligence to dominate your sales niche with ease.
+                        </p>
+                    </div>
                 </div>
 
-                {/* Generator card */}
-                <div className="bg-card rounded-2xl border border-border shadow-md-custom overflow-hidden">
-                    {/* Input section */}
-                    <div className="p-6 md:p-8 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Nama Produk */}
-                            <div className="space-y-2">
-                                <Label htmlFor="namaProduk" className="text-sm font-semibold text-foreground">
-                                    Nama Produk <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    id="namaProduk"
-                                    placeholder="Contoh: Serum Vitamin C Brightening"
-                                    value={namaProduk}
-                                    onChange={(e) => setNamaProduk(e.target.value)}
-                                    disabled={isLoading}
-                                    className="h-11"
-                                />
-                                <p className="text-xs text-muted-foreground">Nama produk yang ingin dibuatkan caption</p>
-                            </div>
+                <div className="lg:col-span-8 w-full">
+                    <div className="bg-[#1a1a1a]/95 rounded-[3rem] border-4 border-black shadow-[20px_20px_0px_rgba(212,175,55,0.3)] overflow-hidden backdrop-blur-2xl">
+                        <div className="p-8 md:p-12 space-y-10">
 
-                            {/* Model AI */}
-                            <div className="space-y-2">
-                                <Label htmlFor="modelAi" className="text-sm font-semibold text-foreground">
-                                    Model AI <span className="text-destructive">*</span>
-                                </Label>
-                                <div className="relative">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center pointer-events-none">
-                                        {selectedModelData?.logo_url ? (
-                                            <img 
-                                                src={selectedModelData.logo_url} 
-                                                alt="Logo" 
-                                                className="w-full h-full object-contain"
-                                            />
-                                        ) : (
-                                            <Cpu className="w-4 h-4 text-muted-foreground" />
-                                        )}
-                                    </div>
-                                    <select
-                                        id="modelAi"
-                                        className="flex h-11 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {/* Product Name */}
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-black text-[#FFD700] uppercase tracking-[0.2em] flex items-center gap-2 drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]">
+                                        <div className="w-3 h-3 bg-[#D4AF37] rotate-45"></div> Product Name
+                                    </Label>
+                                    <Input
+                                        placeholder="Type product name here..."
+                                        value={productName}
+                                        onChange={(e) => setProductName(e.target.value)}
+                                        className="bg-black border-2 border-gray-700 focus:border-[#D4AF37] text-white h-14 rounded-xl text-lg font-black placeholder:text-gray-500 transition-all focus:ring-0"
+                                    />
+                                </div>
+
+                                {/* AI Intelligence Core */}
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-black text-[#FFD700] uppercase tracking-[0.2em] flex items-center gap-2 drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]">
+                                        <div className="w-3 h-3 bg-[#D4AF37] rotate-45"></div> AI Intelligence
+                                    </Label>
+                                    <select 
                                         value={selectedModel}
                                         onChange={(e) => setSelectedModel(e.target.value)}
-                                        disabled={isLoading || models.length === 0}
+                                        className="w-full h-14 px-4 bg-black border-2 border-gray-700 rounded-xl text-white font-black text-lg focus:outline-none focus:border-[#D4AF37] transition-all cursor-pointer hover:bg-gray-900 shadow-inner"
                                     >
-                                        {models.length === 0 ? (
-                                            <option value="">Loading models...</option>
-                                        ) : (
-                                            models.map((model) => (
-                                                <option key={model._id} value={model.id}>
-                                                    {model.name}
+                                        {models.map((model) => {
+                                            const isVision = model.architecture?.input_modalities?.includes('image');
+                                            return (
+                                                <option key={model.id} value={model.id} className="bg-black py-2 text-white">
+                                                    {model.name.toUpperCase()} {isVision ? '⚡ [VISION]' : ''}
                                                 </option>
-                                            ))
-                                        )}
+                                            );
+                                        })}
                                     </select>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                        </svg>
+                                </div>
+
+                                {/* Target Platform (Disabled/Static) */}
+                                <div className="space-y-3 opacity-50 cursor-not-allowed">
+                                    <Label className="text-sm font-black text-[#FFD700] uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-gray-600 rotate-45"></div> Target Platform
+                                    </Label>
+                                    <div className="flex gap-2 h-14 items-center bg-gray-900 border-2 border-gray-800 rounded-xl px-4 text-gray-500 font-bold uppercase italic text-xs">
+                                        Optimization Enabled
                                     </div>
                                 </div>
-                                <p className="text-xs text-muted-foreground">Pilih otak AI yang akan membuatkan caption</p>
                             </div>
-                        </div>
 
-                        <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-                            <p className="text-xs font-semibold text-primary mb-2">Tips Prompt Terbaik:</p>
-                            <ul className="text-xs text-muted-foreground grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                                <li>• Sebutkan target audiens (ibu rumah tangga, remaja, dll)</li>
-                                <li>• Masukkan keunggulan utama produk</li>
-                                <li>• Tentukan platform target (Instagram, TikTok, dll)</li>
-                                <li>• Tambahkan promo atau harga jika ada</li>
-                            </ul>
-                        </div>
+                            {/* Image Upload Area */}
+                            <div className="space-y-3">
+                                <Label className="text-sm font-black text-[#FFD700] uppercase tracking-[0.2em] flex items-center gap-2 drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]">
+                                    <div className="w-3 h-3 bg-[#D4AF37] rotate-45"></div> Visual Analysis Scan
+                                </Label>
+                                <div
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className={`relative h-60 border-4 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group overflow-hidden ${imagePreview
+                                            ? 'border-[#D4AF37] bg-[#D4AF37]/5'
+                                            : 'border-gray-700 hover:border-[#D4AF37] hover:bg-black shadow-2xl'
+                                        }`}
+                                >
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleImageChange}
+                                        className="hidden"
+                                        accept="image/*"
+                                    />
 
-                        {/* Input Prompt */}
-                        <div className="space-y-2">
-                            <Label htmlFor="inputPrompt" className="text-sm font-semibold text-foreground">
-                                Deskripsi / Prompt <span className="text-destructive">*</span>
-                            </Label>
-                            <div className="bg-white rounded-lg overflow-hidden border border-border focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                <ReactQuill
-                                    theme="snow"
+                                    {imagePreview ? (
+                                        <div className="relative w-full h-full p-4">
+                                            <img src={imagePreview} className="w-full h-full object-contain rounded-3xl" />
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                                                <p className="bg-[#D4AF37] text-black px-6 py-2 font-black text-sm uppercase tracking-[0.2em] border-2 border-black">Update Visual Data</p>
+                                            </div>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); removeImage(); }}
+                                                className="absolute top-8 right-8 p-3 bg-black border-4 border-red-500 rounded-full text-red-500 hover:bg-red-500 hover:text-black transition-all transform hover:scale-125 z-20 shadow-2xl"
+                                            >
+                                                <X className="w-6 h-6" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="p-8 rounded-full bg-gray-900 border-2 border-gray-800 mb-4 group-hover:scale-110 group-hover:border-[#D4AF37] transition-all duration-500 shadow-2xl">
+                                                <ImageIcon className="w-12 h-12 text-[#D4AF37] drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]" />
+                                            </div>
+                                            <p className="text-xl text-white font-black uppercase italic tracking-tighter">Initialize Data Scan</p>
+                                            <p className="text-xs text-[#D4AF37] mt-2 font-black uppercase tracking-widest">Click to upload file</p>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Description Editor */}
+                            <div className="space-y-3">
+                                <Label className="text-sm font-black text-[#FFD700] uppercase tracking-[0.2em] flex items-center gap-2 drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]">
+                                    <div className="w-3 h-3 bg-[#D4AF37] rotate-45"></div> Strategic Context
+                                </Label>
+                                <Textarea
+                                    placeholder="Enter promotional details, features, or target audience..."
                                     value={inputPrompt}
-                                    onChange={setInputPrompt}
-                                    placeholder="Contoh: Serum untuk mencerahkan kulit kusam..."
-                                    className="quill-editor"
-                                    modules={{
-                                        toolbar: [
-                                            ['bold', 'italic', 'underline'],
-                                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                                            ['clean']
-                                        ],
-                                    }}
+                                    onChange={(e) => setInputPrompt(e.target.value)}
+                                    className="bg-black border-2 border-gray-700 focus:border-[#D4AF37] text-white min-h-[160px] rounded-2xl resize-none p-6 font-bold text-lg placeholder:text-gray-500 transition-all"
                                 />
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                                Jelaskan target pembeli, keunggulan produk, platform, dan info lainnya
-                            </p>
-                        </div>
 
-                        {/* Action buttons */}
-                        <div className="flex gap-3">
-                            <Button
-                                onClick={handleGenerate}
-                                disabled={isLoading || !namaProduk.trim() || !inputPrompt.trim()}
-                                className="flex-1 h-12 gradient-hero text-primary-foreground border-0 hover:opacity-90 transition-opacity text-sm font-semibold"
-                            >
-                                {isLoading ? (
-                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating Caption...</>
-                                ) : (
-                                    <><Sparkles className="w-4 h-4 mr-2" /> Generate Caption AI</>
-                                )}
-                            </Button>
-
-                            {(resultText || error) && (
+                            <div className="flex flex-col sm:flex-row gap-8 pt-4">
                                 <Button
-                                    variant="outline"
-                                    onClick={handleReset}
+                                    onClick={handleGenerate}
                                     disabled={isLoading}
-                                    className="h-12 px-4"
+                                    className="flex-1 h-20 text-2xl font-black uppercase italic bg-[#D4AF37] hover:bg-white text-black shadow-[10px_10px_0px_rgba(0,0,0,1)] border-4 border-black rounded-3xl transform transition-all hover:-translate-x-2 hover:-translate-y-2 active:translate-x-0 active:translate-y-0"
                                 >
-                                    <RotateCcw className="w-4 h-4" />
+                                    {isLoading ? (
+                                        <><Loader2 className="w-8 h-8 mr-4 animate-spin" /> Synchronizing...</>
+                                    ) : (
+                                        <><Zap className="w-8 h-8 mr-4 fill-current" /> Execute Script</>
+                                    )}
                                 </Button>
-                            )}
+                                {(resultText || error) && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleReset}
+                                        className="h-20 px-10 border-4 border-black bg-gray-900 hover:bg-red-500 hover:text-black text-white rounded-3xl shadow-[10px_10px_0px_rgba(0,0,0,1)] transition-all font-black text-xl"
+                                    >
+                                        <RotateCcw className="w-8 h-8" />
+                                    </Button>
+                                )}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Result section */}
-                    {(resultText || isLoading) && (
-                        <div className="border-t border-border">
-                            <div className="p-6 md:p-8">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                                        <h3 className="text-sm font-semibold text-foreground">
-                                            {isLoading ? "Sedang generate caption..." : "Hasil Caption AI"}
+                        {/* Result Display */}
+                        {(resultText || isLoading) && (
+                            <div className="bg-[#D4AF37] p-8 md:p-14 border-t-8 border-black">
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-6 h-6 bg-black animate-ping" />
+                                        <h3 className="text-3xl font-black text-black italic uppercase tracking-tighter">
+                                            {isLoading ? "Drafting Result..." : "Generated Output"}
                                         </h3>
                                     </div>
                                     {resultText && !isLoading && (
                                         <Button
-                                            variant="outline"
-                                            size="sm"
                                             onClick={handleCopy}
-                                            className="h-8 gap-1.5 text-xs"
+                                            className="w-full md:w-auto gap-4 bg-black hover:bg-white hover:text-black text-white font-black uppercase italic tracking-widest px-8 h-14 rounded-2xl border-4 border-black transition-all shadow-[6px_6px_0px_rgba(0,0,0,0.2)]"
                                         >
-                                            {copied ? (
-                                                <><Check className="w-3.5 h-3.5 text-primary" /> Disalin!</>
-                                            ) : (
-                                                <><Copy className="w-3.5 h-3.5" /> Salin Semua</>
-                                            )}
+                                            {copied ? <Check className="w-6 h-6" /> : <Copy className="w-6 h-6" />}
+                                            {copied ? "Copied" : "Copy Result"}
                                         </Button>
                                     )}
                                 </div>
 
-                                <div className="bg-white rounded-xl overflow-hidden border border-border/50">
-                                    {isLoading && !resultText ? (
-                                        <div className="flex items-center gap-3 p-5 text-muted-foreground">
-                                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                                            <span className="text-sm">AI sedang menulis caption jualan terbaik untuk Anda...</span>
+                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+                                    {/* Caption Editor */}
+                                    <div className="bg-white rounded-[2.5rem] overflow-hidden border-4 border-black shadow-[15px_15px_0px_rgba(0,0,0,0.15)] flex flex-col">
+                                        <div className="bg-gray-100 px-6 py-4 border-b-4 border-black font-black uppercase italic tracking-widest text-sm flex items-center gap-2">
+                                            <MessageSquare className="w-4 h-4" /> Marketing Copy
                                         </div>
-                                    ) : (
-                                        <ReactQuill
-                                            theme="snow"
-                                            value={resultText}
-                                            onChange={setResultText}
-                                            readOnly={isLoading}
-                                            className="quill-result"
-                                            modules={{
-                                                toolbar: [
-                                                    ['bold', 'italic', 'underline'],
-                                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                                                    ['clean']
-                                                ],
-                                            }}
-                                        />
-                                    )}
+                                        {isLoading && !resultText ? (
+                                            <div className="flex-1 p-20 flex flex-col items-center justify-center text-center space-y-8">
+                                                <Sparkles className="w-16 h-16 text-[#D4AF37] animate-spin-slow" />
+                                                <p className="text-black font-black text-xl italic uppercase tracking-wider">Drafting...</p>
+                                            </div>
+                                        ) : (
+                                            <Editor
+                                                value={resultText}
+                                                onChange={(e) => setResultText(e.target.value)}
+                                                className="min-h-[400px]"
+                                            />
+                                        )}
+                                    </div>
+
+                                    {/* Generated Image Display */}
+                                    <div className="bg-white rounded-[2.5rem] overflow-hidden border-4 border-black shadow-[15px_15px_0px_rgba(0,0,0,0.15)] flex flex-col">
+                                        <div className="bg-gray-100 px-6 py-4 border-b-4 border-black font-black uppercase italic tracking-widest text-sm flex items-center gap-2">
+                                            <ImageIcon className="w-4 h-4" /> AI Generated Visual
+                                        </div>
+                                        <div className="flex-1 relative bg-black min-h-[400px] flex items-center justify-center group">
+                                            {isGeneratingImage ? (
+                                                <div className="flex flex-col items-center space-y-6">
+                                                    <div className="w-20 h-20 border-8 border-t-[#D4AF37] border-gray-800 rounded-full animate-spin"></div>
+                                                    <p className="text-[#D4AF37] font-black uppercase italic tracking-[0.3em] animate-pulse">Rendering Visual...</p>
+                                                </div>
+                                            ) : generatedImageUrl ? (
+                                                <>
+                                                    <img
+                                                        src={generatedImageUrl}
+                                                        alt="AI Generated Marketing"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center backdrop-blur-sm">
+                                                        <a
+                                                            href={generatedImageUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="bg-[#D4AF37] text-black px-8 py-3 font-black uppercase italic border-4 border-black shadow-[6px_6px_0px_rgba(0,0,0,1)] hover:bg-white transition-all transform hover:-translate-y-1"
+                                                        >
+                                                            Open HD Version
+                                                        </a>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-center p-10">
+                                                    <Sparkles className="w-20 h-20 text-gray-800 mx-auto mb-6" />
+                                                    <p className="text-gray-600 font-black uppercase italic text-lg">Visual output will appear here</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Error */}
-                    {error && (
-                        <div className="border-t border-destructive/20 bg-destructive/5 p-4 md:px-8">
-                            <p className="text-sm text-destructive">
-                                <span className="font-semibold">Error: </span>{error}
-                            </p>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Custom Styles for Quill */}
-            <style dangerouslySetInnerHTML={{ __html: `
-                .quill-editor .ql-container {
-                    min-height: 120px;
-                    font-family: inherit;
-                    font-size: 14px;
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes bounce-subtle {
+                    0%, 100% { transform: translateY(0) rotate(-2deg); }
+                    50% { transform: translateY(-12px) rotate(1deg); }
                 }
-                .quill-result .ql-container {
-                    min-height: 150px;
-                    font-family: inherit;
-                    font-size: 14px;
+                .animate-bounce-subtle {
+                    animation: bounce-subtle 4s ease-in-out infinite;
                 }
-                .ql-toolbar.ql-snow {
-                    border: none;
-                    border-bottom: 1px solid #e2e8f0;
-                    background: #f8fafc;
+                @keyframes spin-slow {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
                 }
-                .ql-container.ql-snow {
-                    border: none;
+                .animate-spin-slow {
+                    animation: spin-slow 10s linear infinite;
                 }
-                .ql-editor.ql-blank::before {
-                    color: #94a3b8;
-                    font-style: normal;
+                .rsw-editor {
+                    border: none !important;
+                    background: white !important;
+                    color: black !important;
+                }
+                .rsw-toolbar {
+                    background: #f9fafb !important;
+                    border-bottom: 4px solid black !important;
+                    padding: 1.25rem !important;
+                }
+                .rsw-btn {
+                    color: black !important;
+                    border: 2px solid transparent !important;
+                    width: 38px !important;
+                    height: 38px !important;
+                }
+                .rsw-btn:hover {
+                    background: #D4AF37 !important;
+                    border: 2px solid black !important;
+                    transform: scale(1.1);
+                }
+                .rsw-btn[data-active="true"] {
+                    background: #D4AF37 !important;
+                    border: 2px solid black !important;
+                }
+                .rsw-content {
+                    padding: 3rem !important;
+                    line-height: 2 !important;
+                    font-weight: 600 !important;
+                    font-size: 1.25rem !important;
+                    color: #1a1a1a !important;
+                }
+                /* Scrollbar */
+                ::-webkit-scrollbar { width: 14px; }
+                ::-webkit-scrollbar-track { background: #0a0a0a; }
+                ::-webkit-scrollbar-thumb { 
+                    background: #D4AF37; 
+                    border: 4px solid #0a0a0a;
+                    border-radius: 20px;
+                }
+                ::-webkit-scrollbar-thumb:hover { background: #white; }
+                
+                ::placeholder {
+                    color: #6b7280 !important;
+                    opacity: 1 !important;
                 }
             `}} />
         </section>

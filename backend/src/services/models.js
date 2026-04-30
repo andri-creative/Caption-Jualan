@@ -79,34 +79,28 @@ const LOGO_MAP = {
     "llama": "https://openrouter.ai/images/icons/Meta.png"
 };
 
-// Fungsi untuk mengambil data model dari MongoDB (dengan filter ID asli OpenRouter)
+// Fungsi untuk mengambil data model langsung dari OpenRouter API
 const getModelsFromDB = async () => {
     try {
-        // Daftar ID asli (slug) yang ingin kita tampilkan
-        const modelMappings = {
-            "google/gemini-2.0-flash-001": "Google: Gemini 2.0 Flash",
-            "deepseek/deepseek-chat": "DeepSeek: DeepSeek V3",
-            "openai/gpt-4o": "OpenAI: GPT-4o Pro",
-            "anthropic/claude-3-5-sonnet": "Anthropic: Claude 3.5 Sonnet",
-            "meta-llama/llama-3.3-70b-instruct:free": "Meta: Llama 3.3 70B (Free)",
-            "nvidia/llama-3.1-nemotron-70b-instruct:free": "NVIDIA: Nemotron 70B (Free)",
-            "qwen/qwen-2.5-72b-instruct": "Qwen: Qwen 2.5 72B",
-            "xai/grok-2-1212": "xAI: Grok 2"
-        };
-
-        const allowedIds = Object.keys(modelMappings);
-
-        const models = await AiModel.find({
-            _id: { $in: allowedIds }
+        console.log("🌐 Fetching models directly from OpenRouter API...");
+        const response = await fetch(`${urlAi}/models`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${key}`
+            }
         });
 
-        // Tambahkan logo_url dan gunakan Nama Cantik pilihan kita
-        const modelsWithLogos = models.map(model => {
-            const slug = model._id;
-            const displayName = modelMappings[slug] || model.name;
-            const modelKey = slug.toLowerCase();
-            
-            let logo = 'https://cdn-icons-png.flaticon.com/512/2103/2103633.png'; // Default
+        if (!response.ok) {
+            throw new Error(`OpenRouter API Error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const models = data.data || [];
+
+        // Tambahkan logo_url secara dinamis
+        return models.map(model => {
+            const modelKey = model.id.toLowerCase();
+            let logo = 'https://cdn-icons-png.flaticon.com/512/2103/2103633.png';
 
             for (const key in LOGO_MAP) {
                 if (modelKey.includes(key)) {
@@ -116,16 +110,12 @@ const getModelsFromDB = async () => {
             }
 
             return {
-                ...model.toObject(),
-                id: slug, // Frontend butuh field 'id'
-                name: displayName, // Gunakan nama cantik kita
+                ...model,
                 logo_url: logo
             };
         });
-
-        return modelsWithLogos;
     } catch (error) {
-        console.error("Error mengambil data dari DB:", error);
+        console.error("Error fetching models from API:", error);
         throw error;
     }
 };

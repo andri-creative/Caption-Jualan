@@ -28,6 +28,10 @@ module.exports = (sequelize, DataTypes) => {
         image_url: {
             type: DataTypes.STRING,
             allowNull: true
+        },
+        generated_image_url: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     }, {
         tableName: 'captions',

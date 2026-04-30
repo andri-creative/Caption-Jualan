@@ -1,6 +1,7 @@
-require('pg'); 
+require('pg');
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const { connectDB } = require('./config/database');
 const db = require('./src/models');
 const aiService = require('./src/services/models');
@@ -51,12 +52,22 @@ app.use(async (req, res, next) => {
 
 // --- Register Routes ---
 app.get('/', (req, res) => {
-  res.json({ message: 'Caption Jualan API is running 🚀', });
+    res.json({ message: 'Caption Jualan API is running 🚀', });
 });
 
 app.use('/api/ai', aiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/captions', captionRoutes);
+
+// Error Handler Global
+app.use((err, req, res, next) => {
+    console.error("❌ GLOBAL ERROR:", err.stack);
+    res.status(500).json({
+        success: false,
+        message: "Internal Server Error",
+        error: err.message
+    });
+});
 
 // Jalankan server lokal hanya jika bukan di lingkungan Vercel
 if (process.env.NODE_ENV !== 'production') {
@@ -65,10 +76,19 @@ if (process.env.NODE_ENV !== 'production') {
             await connectDB();
             await db.sequelize.sync({ alter: false }); 
             console.log('✅ Semua tabel Sequelize berhasil disinkronisasi.');
+
+            // Manual fix for missing column if alter:true fails
+            try {
+                await db.sequelize.query('ALTER TABLE captions ADD COLUMN IF NOT EXISTS generated_image_url VARCHAR(255);');
+                console.log('✅ Column generated_image_url checked/added.');
+            } catch (err) {
+                console.log('ℹ️ Column check skipped or already exists.');
+            }
             
-            // Sync models (opsional dijalankan otomatis di lokal)
-            // const syncResult = await aiService.syncModelsFromApi();
-            // console.log(`✅ ${syncResult.message}.`);
+            // Jalankan sinkronisasi model AI dari OpenRouter secara otomatis
+            console.log('🔄 Memulai sinkronisasi model AI dari OpenRouter...');
+            const syncResult = await aiService.syncModelsFromApi();
+            console.log(`✅ ${syncResult.message}: ${syncResult.total_synced} model.`);
 
             app.listen(PORT, () => {
                 console.log(`🚀 Server is running on http://localhost:${PORT}`);

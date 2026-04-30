@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const aiModelSchema = new mongoose.Schema({
-    _id: { type: String }, // Menggunakan ID dari OpenRouter (misal: 'openai/gpt-4o')
+    _id: { type: String },
     canonical_slug: String,
     name: String,
     description: String,

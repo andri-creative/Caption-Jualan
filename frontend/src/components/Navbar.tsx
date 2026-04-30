@@ -33,33 +33,33 @@ export default function Navbar() {
                         {/* Logo */}
                         <div className="flex items-center gap-2">
                             <img src="/favicon-96x96.png" alt="Logo" className="w-8 h-8 rounded-lg" />
-                            <span className="font-bold text-lg text-foreground">
-                                Caption<span className="text-primary"> Jualan</span> AI
+                            <span className="font-bold text-lg text-white">
+                                Caption<span className="text-yellow-400"> Jualan</span> AI
                             </span>
                         </div>
 
                         {/* Desktop nav */}
                         <div className="hidden md:flex items-center gap-6">
-                            <a href="#fitur" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                            <a href="#fitur" className="text-sm text-gray-300 hover:text-white transition-colors font-medium">
                                 Fitur
                             </a>
-                            <a href="#generator" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                            <a href="#generator" className="text-sm text-gray-300 hover:text-white transition-colors font-medium">
                                 Generator
                             </a>
-                            <a href="#cara-pakai" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                            <a href="#cara-pakai" className="text-sm text-gray-300 hover:text-white transition-colors font-medium">
                                 Cara Pakai
                             </a>
                             
                             {user ? (
                                 <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium">
-                                        <User className="w-4 h-4" />
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800 text-white text-sm font-medium border border-gray-700">
+                                        <User className="w-4 h-4 text-yellow-400" />
                                         {user.name}
                                     </div>
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="text-muted-foreground hover:text-destructive transition-colors"
+                                        className="text-gray-400 hover:text-red-400 transition-colors"
                                         onClick={handleLogout}
                                     >
                                         <LogOut className="w-4 h-4 mr-2" />
@@ -69,7 +69,7 @@ export default function Navbar() {
                             ) : (
                                 <Button
                                     size="sm"
-                                    className="gradient-hero text-primary-foreground border-0 shadow-md-custom hover:opacity-90 transition-opacity"
+                                    className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold border-0 shadow-lg transition-all"
                                     onClick={() => setLoginOpen(true)}
                                 >
                                     Login
@@ -79,7 +79,7 @@ export default function Navbar() {
 
                         {/* Mobile menu button */}
                         <button
-                            className="md:hidden text-muted-foreground hover:text-foreground transition-colors"
+                            className="md:hidden text-gray-300 hover:text-white transition-colors"
                             onClick={() => setMenuOpen(!menuOpen)}
                         >
                             {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -89,28 +89,28 @@ export default function Navbar() {
 
                 {/* Mobile menu */}
                 {menuOpen && (
-                    <div className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur-xl">
+                    <div className="md:hidden border-t border-gray-800 bg-black/95 backdrop-blur-xl">
                         <div className="px-4 py-3 space-y-3">
-                            <a href="#fitur" className="block text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMenuOpen(false)}>
+                            <a href="#fitur" className="block text-sm text-gray-300 hover:text-white transition-colors" onClick={() => setMenuOpen(false)}>
                                 Fitur
                             </a>
-                            <a href="#generator" className="block text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMenuOpen(false)}>
+                            <a href="#generator" className="block text-sm text-gray-300 hover:text-white transition-colors" onClick={() => setMenuOpen(false)}>
                                 Generator
                             </a>
-                            <a href="#cara-pakai" className="block text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setMenuOpen(false)}>
+                            <a href="#cara-pakai" className="block text-sm text-gray-300 hover:text-white transition-colors" onClick={() => setMenuOpen(false)}>
                                 Cara Pakai
                             </a>
                             
                             {user ? (
-                                <div className="pt-2 border-t border-border">
-                                    <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground mb-2">
-                                        <User className="w-4 h-4" />
+                                <div className="pt-2 border-t border-gray-800">
+                                    <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white mb-2">
+                                        <User className="w-4 h-4 text-yellow-400" />
                                         {user.name}
                                     </div>
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="w-full justify-start text-muted-foreground hover:text-destructive"
+                                        className="w-full justify-start text-gray-300 border-gray-700 hover:bg-red-500/10 hover:text-red-500"
                                         onClick={handleLogout}
                                     >
                                         <LogOut className="w-4 h-4 mr-2" />
@@ -120,7 +120,7 @@ export default function Navbar() {
                             ) : (
                                 <Button
                                     size="sm"
-                                    className="w-full gradient-hero text-primary-foreground border-0"
+                                    className="w-full bg-yellow-500 text-black font-bold"
                                     onClick={() => { setLoginOpen(true); setMenuOpen(false); }}
                                 >
                                     Login
