@@ -4,13 +4,13 @@ import {
     TrendingUp,
     Clock,
     ChevronRight,
-    Camera,
-    MessageSquare,
-    Star,
+    MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import CaptionGenerator from "@/components/CaptionGenerator";
+
+import { FaInstagram, FaWhatsapp, FaTiktok, FaSquareFacebook } from "react-icons/fa6";
 
 const features = [
     {
@@ -36,10 +36,10 @@ const features = [
 ];
 
 const useCases = [
-    { icon: Camera, label: "Instagram" },
-    { icon: MessageSquare, label: "WhatsApp" },
-    { icon: Star, label: "TikTok" },
-    { icon: Sparkles, label: "Facebook" },
+    { icon: FaInstagram, label: "Instagram" },
+    { icon: FaWhatsapp, label: "WhatsApp" },
+    { icon: FaTiktok, label: "TikTok" },
+    { icon: FaSquareFacebook, label: "Facebook" },
 ];
 
 const steps = [
@@ -61,9 +61,9 @@ export default function Index() {
             <section className="relative pt-32 pb-20 px-4 overflow-hidden bg-black">
                 {/* Anime Background for Hero */}
                 <div className="absolute inset-0 z-0">
-                    <img 
-                        src="/anime-bg.png" 
-                        alt="Background" 
+                    <img
+                        src="/anime-bg.png"
+                        alt="Background"
                         className="w-full h-full object-cover opacity-20 scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-b from-black via-black/80 to-black"></div>
@@ -77,7 +77,7 @@ export default function Index() {
 
                 <div className="relative z-50 max-w-4xl mx-auto text-center">
                     {/* Badge */}
-                    <div 
+                    <div
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/20 text-sm font-bold mb-6 border border-yellow-500/40 uppercase tracking-widest"
                         style={{ color: '#fbbf24 !important' }}
                     >
@@ -86,12 +86,12 @@ export default function Index() {
                     </div>
 
                     {/* Headline */}
-                    <h1 
+                    <h1
                         className="text-4xl md:text-7xl font-black leading-tight mb-6 italic uppercase tracking-tighter"
                         style={{ color: 'white !important' }}
                     >
                         Caption Jualan{" "}
-                        <span 
+                        <span
                             className="drop-shadow-[0_0_30px_rgba(250,204,21,0.8)]"
                             style={{ color: '#fbbf24 !important' }}
                         >
@@ -101,11 +101,11 @@ export default function Index() {
                         dalam Detik
                     </h1>
 
-                    <p 
+                    <p
                         className="text-lg md:text-2xl max-w-2xl mx-auto mb-10 leading-relaxed font-black"
                         style={{ color: '#e5e7eb !important' }}
                     >
-                        Buat caption jualan yang menarik, persuasif, dan siap viral untuk Instagram, TikTok, dan WhatsApp 
+                        Buat caption jualan yang menarik, persuasif, dan siap viral untuk Instagram, TikTok, dan WhatsApp
                         — cukup masukkan nama produk dan klik generate.
                     </p>
 

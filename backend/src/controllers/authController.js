@@ -112,9 +112,22 @@ const googleCallback = async (req, res) => {
         
         setTokensInCookies(res, result.session);
 
-        // Setelah sukses, arahkan user kembali ke Home atau Dashboard frontend
+        // Setelah sukses, beri tahu opener bahwa login berhasil lalu tutup popup
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        return res.redirect(frontendUrl); 
+        return res.send(`
+            <html>
+                <body>
+                    <script>
+                        if (window.opener) {
+                            window.opener.postMessage({ type: 'GOOGLE_LOGIN_SUCCESS' }, '*');
+                            window.close();
+                        } else {
+                            window.location.href = '${frontendUrl}';
+                        }
+                    </script>
+                </body>
+            </html>
+        `);
     } catch (error) {
         return res.status(500).send("Terjadi kesalahan saat memproses otentikasi Google.");
     }

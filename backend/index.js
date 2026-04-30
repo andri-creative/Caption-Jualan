@@ -16,8 +16,8 @@ const PORT = process.env.PORT || 3000;
 
 // --- Middleware ---
 const allowedOrigins = [
+    'https://caption-jualan.vercel.app',
     'http://localhost:5173',
-    'https://caption-jualan.vercel.app'
 ];
 
 app.use(cors({
@@ -74,7 +74,7 @@ if (process.env.NODE_ENV !== 'production') {
     const startServer = async () => {
         try {
             await connectDB();
-            await db.sequelize.sync({ alter: false }); 
+            await db.sequelize.sync({ alter: false });
             console.log('✅ Semua tabel Sequelize berhasil disinkronisasi.');
 
             // Manual fix for missing column if alter:true fails
@@ -84,7 +84,7 @@ if (process.env.NODE_ENV !== 'production') {
             } catch (err) {
                 console.log('ℹ️ Column check skipped or already exists.');
             }
-            
+
             // Jalankan sinkronisasi model AI dari OpenRouter secara otomatis
             console.log('🔄 Memulai sinkronisasi model AI dari OpenRouter...');
             const syncResult = await aiService.syncModelsFromApi();

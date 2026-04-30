@@ -89,7 +89,41 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
         try {
             const result = await authService.getGoogleUrl();
             if (result.success && result.url) {
-                window.location.href = result.url;
+                // Buka popup untuk login Google
+                const width = 500;
+                const height = 600;
+                const left = window.screen.width / 2 - width / 2;
+                const top = window.screen.height / 2 - height / 2;
+                const popup = window.open(
+                    result.url,
+                    'GoogleLogin',
+                    `width=${width},height=${height},top=${top},left=${left}`
+                );
+
+                if (popup) {
+                    // Dengarkan pesan sukses dari popup
+                    const messageListener = (event: MessageEvent) => {
+                        if (event.data?.type === 'GOOGLE_LOGIN_SUCCESS') {
+                            window.removeEventListener('message', messageListener);
+                            toast({ title: "Berhasil login dengan Google!", description: "Selamat datang kembali." });
+                            onOpenChange(false);
+                            window.location.reload();
+                        }
+                    };
+                    window.addEventListener('message', messageListener);
+                    
+                    // Deteksi jika popup ditutup
+                    const checkClosed = setInterval(() => {
+                        if (popup.closed) {
+                            clearInterval(checkClosed);
+                            setIsGoogleLoading(false);
+                            window.removeEventListener('message', messageListener);
+                        }
+                    }, 500);
+                } else {
+                    // Fallback jika popup diblokir
+                    window.location.href = result.url;
+                }
             } else {
                 throw new Error(result.message || "Gagal mendapatkan URL Google");
             }
