@@ -12,6 +12,12 @@
     <title>Caption Jualan AI</title>
   </head>
   <body>
+    <!-- Script untuk menangkap token Supabase yang nyasar ke frontend -->
+    <script>
+      if (window.location.hash && window.location.hash.includes('access_token')) {
+        window.location.href = 'https://caption-backend.vercel.app/api/auth/callback' + window.location.hash;
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
