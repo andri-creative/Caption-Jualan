@@ -53,7 +53,20 @@ app.use(async (req, res, next) => {
 
 // --- Register Routes ---
 app.get('/', (req, res) => {
-    res.json({ message: 'Caption Jualan API is running 🚀', });
+    res.send(`
+        <html>
+            <body>
+                <script>
+                    if (window.location.hash && window.location.hash.includes('access_token')) {
+                        // Forward Supabase fallback redirect to our actual callback endpoint
+                        window.location.href = '/api/auth/google/callback' + window.location.hash;
+                    } else {
+                        document.body.innerHTML = '<pre>{"message": "Caption Jualan API is running 🚀"}</pre>';
+                    }
+                </script>
+            </body>
+        </html>
+    `);
 });
 
 app.use('/api/ai', aiRoutes);
