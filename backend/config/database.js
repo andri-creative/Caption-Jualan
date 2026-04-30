@@ -3,17 +3,28 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 // 1. PostgreSQL Connection (Sequelize)
-const sequelize = new Sequelize(
-  process.env.DB_NAME || 'caption_jualan',
-  process.env.DB_USER || 'postgres',
-  process.env.DB_PASS || 'postgres',
-  {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    dialect: 'postgres',
-    logging: false
-  }
-);
+const sequelize = process.env.DATABASE_URL
+  ? new Sequelize(process.env.DATABASE_URL, {
+      dialect: 'postgres',
+      logging: false,
+      dialectOptions: {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false
+        }
+      }
+    })
+  : new Sequelize(
+      process.env.DB_NAME || 'caption_jualan',
+      process.env.DB_USER || 'postgres',
+      process.env.DB_PASS || 'postgres',
+      {
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 5432,
+        dialect: 'postgres',
+        logging: false
+      }
+    );
 
 // 2. MongoDB Connection (Mongoose)
 const connectMongo = async () => {

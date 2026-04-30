@@ -1,24 +1,49 @@
+require('dotenv').config();
 const express = require('express');
 const { connectDB } = require('./config/database');
-require('dotenv').config();
+const db = require('./src/models');
+const aiService = require('./src/services/models');
+const aiRoutes = require('./src/routes/aiRoutes');
+const authRoutes = require('./src/routes/authRoutes');
+const captionRoutes = require('./src/routes/captionRoutes'); // Tambahkan ini
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// --- Middleware ---
 app.use(express.json());
+app.use(cookieParser());
+app.use(express.static('public'));
 
-// Routes
+// --- Register Routes ---
 app.get('/', (req, res) => {
   res.json({ message: 'Caption Jualan API is running 🚀' });
 });
 
-// Start Server & Connect DB
+app.use('/api/ai', aiRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/captions', captionRoutes);
+
+
 const startServer = async () => {
-  await connectDB();
-  app.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  });
+  try {
+    await connectDB();
+    await db.sequelize.sync({ alter: true });
+    console.log('✅ Semua tabel Sequelize berhasil disinkronisasi.');
+    const syncResult = await aiService.syncModelsFromApi();
+    console.log(`✅ ${syncResult.message} (${syncResult.total_synced || 0} model).`);
+
+    // 4. Start HTTP Server
+    app.listen(PORT, () => {
+      console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    });
+
+  } catch (err) {
+    console.error('❌ Gagal menjalankan server:', err);
+    process.exit(1);
+  }
 };
 
+// Eksekusi Server
 startServer();

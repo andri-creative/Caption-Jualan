@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         },
         model_used: {
-            type: DataTypes.STRING, // ID dari model AI (referensi ke MongoDB)
+            type: DataTypes.STRING,
             allowNull: false
         },
         result_text: {

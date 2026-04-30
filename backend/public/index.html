@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Caption Jualan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md w-96">
+        <h1 class="text-2xl font-bold mb-6 text-center text-blue-600">Caption Jualan Auth</h1>
+
+        <!-- Check Session Button -->
+        <div class="mb-6 text-center">
+            <button onclick="checkMe()" class="text-xs bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 text-gray-600">
+                🔍 Cek Sesi Login (Siapa Saya?)
+            </button>
+        </div>
+
+        <!-- Register Form -->
+        <div id="register-section" class="mb-8">
+            <h2 class="text-lg font-semibold mb-3">Register</h2>
+            <input type="text" id="reg-name" placeholder="Nama Lengkap" class="w-full p-2 mb-2 border rounded">
+            <input type="email" id="reg-email" placeholder="Email" class="w-full p-2 mb-2 border rounded">
+            <input type="password" id="reg-password" placeholder="Password" class="w-full p-2 mb-4 border rounded">
+            <button onclick="handleRegister()"
+                class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Daftar</button>
+        </div>
+
+        <hr class="my-6">
+
+        <!-- Login Form -->
+        <div id="login-section" class="mb-8">
+            <h2 class="text-lg font-semibold mb-3">Login Email</h2>
+            <input type="email" id="login-email" placeholder="Email" class="w-full p-2 mb-2 border rounded">
+            <input type="password" id="login-password" placeholder="Password" class="w-full p-2 mb-4 border rounded">
+            <button onclick="handleLogin()"
+                class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Login</button>
+        </div>
+
+        <hr class="my-6">
+
+        <!-- Google Login -->
+        <div>
+            <button onclick="handleGoogleLogin()"
+                class="w-full flex items-center justify-center bg-white border border-gray-300 p-2 rounded hover:bg-gray-50">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5 mr-2">
+                Login with Google
+            </button>
+        </div>
+
+        <div id="status" class="mt-4 text-sm text-center text-red-500"></div>
+
+        <hr class="my-6">
+
+        <!-- Generate Caption Section -->
+        <div id="generate-section" class="mt-6 border-t pt-6">
+            <h2 class="text-xl font-bold mb-4 text-blue-600">Buat Caption AI</h2>
+            <input type="text" id="prod-name" placeholder="Nama Produk" class="w-full p-2 mb-2 border rounded">
+            <textarea id="prod-prompt" placeholder="Instruksi Khusus (Contoh: Buat yang lucu)"
+                class="w-full p-2 mb-2 border rounded h-24"></textarea>
+
+            <select id="prod-model" class="w-full p-2 mb-4 border rounded">
+                <option value="">Sedang memuat daftar model dari database...</option>
+            </select>
+
+            <button id="btn-generate" onclick="handleGenerate()"
+                class="w-full bg-purple-600 text-white p-3 rounded-lg font-bold hover:bg-purple-700 shadow-lg">
+                ✨ Generate Caption
+            </button>
+
+            <!-- Loading Spinner -->
+            <div id="loading" class="hidden mt-4 text-center text-blue-500 animate-pulse">Sedang memikirkan kata-kata...
+                🧠</div>
+
+            <!-- Result Area -->
+            <div id="result-area" class="hidden mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-xs text-blue-400 mb-2 font-mono" id="result-meta"></p>
+                <div class="text-gray-800 whitespace-pre-wrap leading-relaxed" id="result-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/auth';
+
+        async function handleRegister() {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                const data = await res.json();
+                document.getElementById('status').innerText = data.success ? "Registrasi Berhasil!" : data.message;
+            } catch (err) {
+                document.getElementById('status').innerText = "Error koneksi ke backend";
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Login Berhasil! Cek Cookie di Browser Anda.');
+                    window.location.reload();
+                } else {
+                    document.getElementById('status').innerText = data.message;
+                }
+            } catch (err) {
+                document.getElementById('status').innerText = "Error koneksi ke backend";
+            }
+        }
+
+        async function handleGoogleLogin() {
+            try {
+                const res = await fetch(`${API_BASE}/google`);
+                const data = await res.json();
+                if (data.url) {
+                    // Arahkan ke halaman Google Login dari Supabase
+                    window.location.href = data.url;
+                }
+            } catch (err) {
+                alert('Gagal mengambil URL Google');
+            }
+        }
+
+        async function checkMe() {
+            try {
+                const res = await fetch('/api/auth/me');
+                const data = await res.json();
+                if (data.success) {
+                    alert(`Anda login sebagai: ${data.user.email} (${data.user.name})`);
+                } else {
+                    alert('Anda belum login atau token tidak valid.');
+                }
+            } catch (err) {
+                alert('Gagal mengecek sesi.');
+            }
+        }
+
+        // Fungsi baru untuk mengambil daftar model dari database
+        async function fetchModels() {
+            try {
+                const res = await fetch('/api/ai/models');
+                const data = await res.json();
+                if (data.success) {
+                    const select = document.getElementById('prod-model');
+                    select.innerHTML = ''; // Hapus pilihan manual lama
+
+                    // Kita ambil 20 model teratas saja agar tidak terlalu panjang
+                    data.data.slice(0, 50).forEach(model => {
+                        const opt = document.createElement('option');
+                        opt.value = model._id; // Menggunakan _id dari MongoDB
+                        opt.text = model.name || model._id;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error('Gagal mengambil daftar model');
+            }
+        }
+
+        // Jalankan fetchModels saat halaman dibuka
+        fetchModels();
+
+        async function handleGenerate() {
+            const product_name = document.getElementById('prod-name').value;
+            const input_prompt = document.getElementById('prod-prompt').value;
+            const model_used = document.getElementById('prod-model').value;
+            const btn = document.getElementById('btn-generate');
+            const loading = document.getElementById('loading');
+            const resultArea = document.getElementById('result-area');
+
+            if (!product_name) return alert('Nama produk harus diisi!');
+
+            try {
+                btn.disabled = true;
+                loading.classList.remove('hidden');
+                resultArea.classList.add('hidden');
+
+                const res = await fetch('/api/captions/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product_name, input_prompt, model_used })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    document.getElementById('result-text').innerText = data.data.result_text;
+                    document.getElementById('result-meta').innerText = `ID: ${data.data.id} | Waktu: ${new Date(data.data.created_at).toLocaleString()}`;
+                    resultArea.classList.remove('hidden');
+                } else {
+                    alert(data.message || 'Gagal generate');
+                }
+            } catch (err) {
+                alert('Terjadi kesalahan sistem');
+            } finally {
+                btn.disabled = false;
+                loading.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+
+</html>

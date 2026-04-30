@@ -44,3 +44,52 @@ Content-Type: application/json
     }
   ]
 }
+
+
+
+#### AUTHENTICATION TEST ####
+@url=http://localhost:3000
+
+### 1. Register Akun Baru (Email)
+POST {{url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "password123",
+  "name": "User Test"
+}
+
+### 2. Login (Email)
+POST {{url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "password123"
+}
+
+### 3. Cek Profil Saya (Butuh Login/Cookie)
+GET {{url}}/api/auth/me
+
+### 4. Dapatkan URL Login Google
+GET {{url}}/api/auth/google
+
+### 5. Logout
+POST {{url}}/api/auth/logout
+
+
+#### CAPTIONS TEST ####
+### 1. Generate Caption (Harus Login Dulu)
+POST {{url}}/api/captions/generate
+Content-Type: application/json
+
+{
+  "product_name": "Sepatu Lari Ultralight",
+  "input_prompt": "Buatkan caption untuk Instagram yang santai tapi bikin orang mau beli",
+  "model_used": "google/gemini-2.0-flash-001"
+}
+
+#### MODELS TEST ####
+### Ambil Daftar Model AI
+GET {{url}}/api/ai/models
