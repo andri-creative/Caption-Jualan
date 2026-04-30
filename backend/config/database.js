@@ -47,7 +47,7 @@ const connectDB = async () => {
     await connectMongo();
   } catch (error) {
     console.error('❌ Database Connection Error:', error);
-    process.exit(1);
+    throw error; 
   }
 };
 
